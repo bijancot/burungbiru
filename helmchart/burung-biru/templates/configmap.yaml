@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "burung-biru.fullname" . }}
+  labels:
+    {{- include "burung-biru.labels" . | nindent 4 }}
+data:
+  www.conf: |
+    this is a test

@@ -1,0 +1,49 @@
+pipeline {
+    agent any
+
+    stages {
+        stage('Copy all code to pipeline') {
+            steps {
+                sh 'cp project/* .'
+            }
+        }
+        stage('UnitTest') {
+            steps {
+                //dengan asumsi code ditulis dalam bahasa golang 
+                sh 'go test'
+            }
+        }
+        stage('Build & push docker') {
+            steps {
+                sh '''
+                    docker build -t <image-repository>/<project_name>:latest -f . \
+                    && docker push <image-repository>/<project_name>:latest
+                '''
+            }
+        }
+        stage('owasp security testing') {
+            steps {
+                dependencyCheck additionalArguments: ''' 
+                            -o './'
+                            -s './'
+                            -f 'ALL' 
+                            --prettyPrint''', odcInstallation: 'OWASP Dependency-Check Vulnerabilities'
+                
+                dependencyCheckPublisher pattern: 'dependency-check-report.xml'
+            }
+        }
+        stage('Security Container or Library Vulnerabilities') {
+            steps {
+                sh 'docker run -v /var/run/docker.sock:/var/run/docker.sock -v $HOME/Library/Caches:/root/.cache/ aquasec/trivy:0.59.1 image --exit-code 200 <image-name>'
+            }
+        }
+        stage('Deploying') {
+            steps {
+                //dengan asumsi deploy dengan helmfile
+                sh '''
+                    helm upgrade -f values.yaml burung-biru
+                '''
+            }
+        }
+    }
+}   
