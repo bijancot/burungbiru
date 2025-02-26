@@ -1,0 +1,2 @@
+[web]
+my-vps ansible_host=x.x.x.x ansible_port=22
